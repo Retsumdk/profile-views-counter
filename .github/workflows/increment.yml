@@ -1,0 +1,31 @@
+name: Increment Profile Views
+
+on:
+  schedule:
+    # Run every 6 hours to capture profile visits
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  increment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Increment count
+        run: |
+          COUNT=$(cat count.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',0)+1)")
+          echo "{\"count\": $COUNT, \"updated\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > count.json
+          cat count.json
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add count.json
+          git diff --quiet && echo "No change" || git commit -m "chore: increment views"
+          git push
